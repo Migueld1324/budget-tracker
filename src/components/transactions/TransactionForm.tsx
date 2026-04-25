@@ -159,6 +159,10 @@ export default function TransactionForm({
             error={!!errors.date}
             helperText={errors.date?.message}
             slotProps={{ inputLabel: { shrink: true } }}
+            sx={{
+              '& input': { textAlign: 'left' },
+              '& input[type="date"]': { textAlign: 'left' },
+            }}
             fullWidth
           />
         )}
@@ -270,10 +274,9 @@ export default function TransactionForm({
           <TextField
             {...field}
             label="Descripción"
-            multiline
-            minRows={2}
             error={!!errors.description}
             helperText={errors.description?.message}
+            sx={{ '& input': { textAlign: 'left' } }}
             fullWidth
           />
         )}
