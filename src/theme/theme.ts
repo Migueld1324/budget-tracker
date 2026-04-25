@@ -1,14 +1,10 @@
 import { createTheme, type Theme } from '@mui/material/styles';
 
-/**
- * Returns a MUI theme configured for the given mode.
- *
- * Primary color based on #09297A (deep navy blue).
- * - Light and dark palettes with WCAG AA contrast (≥ 4.5:1 text-on-background)
- * - Base font size 16px for mobile readability (Req 13.6)
- * - Interactive elements with 44×44px minimum touch targets (Req 13.5)
- */
+const FIELD_HEIGHT = 36;
+
 export function getTheme(mode: 'light' | 'dark'): Theme {
+  const iconColor = mode === 'light' ? '#3D3D5C' : '#9FA8DA';
+
   return createTheme({
     palette: {
       mode,
@@ -32,60 +28,64 @@ export function getTheme(mode: 'light' | 'dark'): Theme {
             success: { main: '#81c784' },
           }),
     },
-
     typography: {
       fontSize: 16,
-      fontFamily: [
-        '-apple-system',
-        'BlinkMacSystemFont',
-        '"Segoe UI"',
-        'Roboto',
-        '"Helvetica Neue"',
-        'Arial',
-        'sans-serif',
-      ].join(','),
+      fontFamily: ['-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', 'sans-serif'].join(','),
     },
-
     components: {
       MuiButton: {
         styleOverrides: {
-          root: {
-            minHeight: 44,
-            minWidth: 44,
-          },
+          root: { height: FIELD_HEIGHT, minWidth: 36, textTransform: 'none' as const },
         },
       },
       MuiIconButton: {
         styleOverrides: {
-          root: {
-            minHeight: 44,
-            minWidth: 44,
-          },
+          root: { minHeight: 36, minWidth: 36 },
         },
       },
-      MuiTextField: {
+      MuiInputBase: {
+        styleOverrides: {
+          root: { height: FIELD_HEIGHT },
+          input: { padding: '6px 12px', height: 'auto' },
+        },
+      },
+      MuiOutlinedInput: {
         styleOverrides: {
           root: {
-            '& .MuiInputBase-root': {
-              minHeight: 44,
+            height: FIELD_HEIGHT,
+            '& .MuiSvgIcon-root': { color: iconColor },
+            '& input[type="date"]::-webkit-calendar-picker-indicator': {
+              filter: mode === 'dark' ? 'invert(1) brightness(0.8)' : 'none',
+              opacity: 0.6,
+              cursor: 'pointer',
             },
           },
+          input: { padding: '6px 12px' },
+          notchedOutline: {},
+        },
+      },
+      MuiInputLabel: {
+        styleOverrides: {
+          root: { transform: 'translate(12px, 5px) scale(1)' },
+          shrink: { transform: 'translate(14px, -9px) scale(0.75)' },
+          sizeSmall: { transform: 'translate(12px, 5px) scale(1)' },
         },
       },
       MuiSelect: {
         styleOverrides: {
           select: {
-            minHeight: 44,
+            height: FIELD_HEIGHT,
+            minHeight: 'unset',
             display: 'flex',
             alignItems: 'center',
+            padding: '0 12px',
           },
+          icon: { color: iconColor },
         },
       },
       MuiMenuItem: {
         styleOverrides: {
-          root: {
-            minHeight: 44,
-          },
+          root: { minHeight: 36 },
         },
       },
     },

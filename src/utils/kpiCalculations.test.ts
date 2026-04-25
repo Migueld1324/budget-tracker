@@ -628,11 +628,6 @@ describe('Property 17: Balances independientes del período', () => {
           expect(result1.totalIncome).toBe(result2.totalIncome);
           expect(result1.totalExpenses).toBe(result2.totalExpenses);
 
-          // Additionally: filtering transactions by period doesn't affect calculateAccountBalance
-          // since it always uses the full allTransactions array
-          const filteredByPeriod1 = txns.filter(t => t.period === period1);
-          const filteredByPeriod2 = txns.filter(t => t.period === period2);
-
           // Even if we pass different subsets, the full set always gives the same result
           const fullResult = calculateAccountBalance(account, txns);
           expect(fullResult.balance).toBe(result1.balance);

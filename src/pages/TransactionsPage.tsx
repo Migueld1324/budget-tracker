@@ -7,6 +7,7 @@ import DialogContent from '@mui/material/DialogContent';
 import Typography from '@mui/material/Typography';
 import LinearProgress from '@mui/material/LinearProgress';
 import Add from '@mui/icons-material/Add';
+import FilterList from '@mui/icons-material/FilterList';
 
 import { useAuthStore } from '../store/authStore';
 import { useTransactionStore } from '../store/transactionStore';
@@ -16,7 +17,7 @@ import { useUIStore } from '../store/uiStore';
 
 import TransactionTable from '../components/transactions/TransactionTable';
 import TransactionForm from '../components/transactions/TransactionForm';
-import PeriodSelector, { periodToDisplay } from '../components/common/PeriodSelector';
+import PeriodSelector from '../components/common/PeriodSelector';
 import type { TransactionInput } from '../types';
 
 interface DialogState {
@@ -42,6 +43,7 @@ export default function TransactionsPage() {
   const fetchCategories = useCategoryStore((s) => s.fetchCategories);
 
   const [dialog, setDialog] = useState<DialogState>({ open: false, editId: null });
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const userId = user?.uid ?? '';
 
   useEffect(() => {
@@ -83,19 +85,21 @@ export default function TransactionsPage() {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       {isLoading && <LinearProgress sx={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1200, height: 3 }} />}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
-        <Typography variant="h5" sx={{ fontWeight: 600 }}>Transacciones — {periodToDisplay(selectedPeriod)}</Typography>
-        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1, pl: { xs: 6, md: 0 } }}>
+        <Typography variant="h5" sx={{ fontWeight: 600 }}>Transacciones</Typography>
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', ml: 'auto' }}>
           <PeriodSelector />
-          <Button variant="contained" startIcon={<Add />} onClick={openAddDialog}>Agregar</Button>
+          <Button variant="contained" size="small" startIcon={<Add />} onClick={openAddDialog} sx={{}}>Agregar</Button>
+          <Button size="small" startIcon={<FilterList />} onClick={() => setFiltersOpen(!filtersOpen)} sx={{}}>Filtros</Button>
         </Box>
       </Box>
       <TransactionTable
         transactions={transactions}
-        accounts={accounts}
         categories={categories}
         onEdit={openEditDialog}
         onDelete={handleDelete}
+        filtersOpen={filtersOpen}
+        onFiltersOpenChange={setFiltersOpen}
       />
       <Dialog open={dialog.open} onClose={closeDialog} maxWidth="sm" fullWidth>
         <DialogTitle>{dialog.editId ? 'Editar Transacción' : 'Nueva Transacción'}</DialogTitle>

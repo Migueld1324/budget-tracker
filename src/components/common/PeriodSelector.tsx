@@ -50,7 +50,7 @@ export default function PeriodSelector() {
         onChange={handleChange}
         aria-label="Selector de período"
         renderValue={(value) => periodToDisplay(value)}
-        sx={{ '& .MuiSelect-select': { py: 0.75, minHeight: 'unset !important' }, '& .MuiInputBase-root': { minHeight: 'unset' } }}
+        sx={{}}
       >
         {options.map((period) => (
           <MenuItem key={period} value={period}>
