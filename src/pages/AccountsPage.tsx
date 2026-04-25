@@ -82,7 +82,7 @@ export default function AccountsPage() {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, p: 2 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography variant="h5">Cuentas</Typography>
+        <Typography variant="h5" sx={{ pl: { xs: 6, md: 0 } }}>Cuentas</Typography>
         <Button variant="contained" startIcon={<Add />} onClick={openAddDialog}>
           Agregar Cuenta
         </Button>

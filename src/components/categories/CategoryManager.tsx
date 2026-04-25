@@ -10,7 +10,9 @@ import Alert from '@mui/material/Alert';
 import Divider from '@mui/material/Divider';
 import Stack from '@mui/material/Stack';
 import Box from '@mui/material/Box';
-import Delete from '@mui/icons-material/Delete';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import MoreVert from '@mui/icons-material/MoreVert';
 import type { CategoryLists, TransactionType } from '../../types';
 
 export interface CategoryManagerProps {
@@ -32,6 +34,25 @@ export default function CategoryManager({ categories, onAdd, onDelete, error }: 
     Gasto: '',
     Transferencia: '',
   });
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [activeCategory, setActiveCategory] = useState<{ type: TransactionType; name: string } | null>(null);
+
+  const openActionsMenu = (event: React.MouseEvent<HTMLElement>, type: TransactionType, name: string) => {
+    setAnchorEl(event.currentTarget);
+    setActiveCategory({ type, name });
+  };
+
+  const closeActionsMenu = () => {
+    setAnchorEl(null);
+    setActiveCategory(null);
+  };
+
+  const handleDeleteClick = () => {
+    if (activeCategory) {
+      onDelete(activeCategory.type, activeCategory.name);
+    }
+    closeActionsMenu();
+  };
 
   const handleAdd = (type: TransactionType) => {
     const name = newNames[type].trim();
@@ -55,14 +76,28 @@ export default function CategoryManager({ categories, onAdd, onDelete, error }: 
             {label}
           </Typography>
 
-          <List dense>
+          <List dense disablePadding sx={{ border: '1px solid', borderColor: 'divider' }}>
             {categories[type].map((name) => (
               <ListItem
                 key={name}
+                sx={{ borderBottom: '1px solid', borderColor: 'divider' }}
                 secondaryAction={
-                  <IconButton edge="end" aria-label="eliminar" onClick={() => onDelete(type, name)}>
-                    <Delete />
-                  </IconButton>
+                  <>
+                    <IconButton
+                      edge="end"
+                      aria-label="opciones"
+                      onClick={(e) => openActionsMenu(e, type, name)}
+                    >
+                      <MoreVert />
+                    </IconButton>
+                    <Menu
+                      anchorEl={activeCategory?.type === type && activeCategory?.name === name ? anchorEl : null}
+                      open={activeCategory?.type === type && activeCategory?.name === name && Boolean(anchorEl)}
+                      onClose={closeActionsMenu}
+                    >
+                      <MenuItem onClick={handleDeleteClick}>Eliminar</MenuItem>
+                    </Menu>
+                  </>
                 }
               >
                 <ListItemText primary={name} />
@@ -76,7 +111,7 @@ export default function CategoryManager({ categories, onAdd, onDelete, error }: 
             </Typography>
           )}
 
-          <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+          <Stack direction="row" spacing={1} sx={{ alignItems: 'center', pt: 2 }}>
             <TextField
               size="small"
               placeholder="Nueva categoría"

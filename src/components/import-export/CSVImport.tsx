@@ -73,8 +73,8 @@ export default function CSVImport({ onImportTransactions, onImportAccounts }: CS
     (mode === 'accounts' && parsedAccounts !== null);
 
   return (
-    <Box>
-      <Typography variant="h6" gutterBottom>
+    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+      <Typography variant="h6" gutterBottom sx={{ textAlign: 'center' }}>
         Importar CSV
       </Typography>
 
@@ -82,6 +82,7 @@ export default function CSVImport({ onImportTransactions, onImportAccounts }: CS
         row
         value={mode}
         onChange={(e) => { setMode(e.target.value as ImportMode); reset(); }}
+        sx={{ justifyContent: 'center' }}
       >
         <FormControlLabel value="transactions" control={<Radio />} label="Transacciones" />
         <FormControlLabel value="accounts" control={<Radio />} label="Cuentas" />
@@ -97,14 +98,14 @@ export default function CSVImport({ onImportTransactions, onImportAccounts }: CS
           id="csv-upload-input"
         />
         <label htmlFor="csv-upload-input">
-          <Button variant="outlined" component="span">
+          <Button variant="outlined" component="span" sx={{ minHeight: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', px: 2 }}>
             Seleccionar archivo CSV
           </Button>
         </label>
       </Box>
 
       {hasData && (
-        <Stack spacing={2}>
+        <Stack spacing={2} sx={{ width: '100%', alignItems: 'center' }}>
           <Alert severity={errors.length > 0 ? 'warning' : 'success'}>
             {validCount} registros válidos, {errors.length} errores
           </Alert>
@@ -127,7 +128,7 @@ export default function CSVImport({ onImportTransactions, onImportAccounts }: CS
           )}
 
           {validCount !== null && validCount > 0 && (
-            <Button variant="contained" onClick={handleConfirm}>
+            <Button variant="contained" onClick={handleConfirm} sx={{ minHeight: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', px: 2 }}>
               Confirmar importación
             </Button>
           )}

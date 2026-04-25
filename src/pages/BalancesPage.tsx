@@ -37,8 +37,8 @@ export default function BalancesPage() {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      <Typography variant="h5">Balances por Cuenta</Typography>
-      <Typography variant="body2" color="text.secondary">
+      <Typography variant="h5" sx={{ pl: { xs: 6, md: 0 } }}>Balances por Cuenta</Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ pl: { xs: 6, md: 0 } }}>
         Balances históricos acumulados — independientes del período seleccionado
       </Typography>
       <BalancesTable balances={balances} />

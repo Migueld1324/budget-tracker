@@ -50,7 +50,7 @@ export default function CategoriesPage() {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, p: 2 }}>
-      <Typography variant="h5">Categorías</Typography>
+      <Typography variant="h5" sx={{ pl: { xs: 6, md: 0 } }}>Categorías</Typography>
       <CategoryManager
         categories={categories}
         onAdd={handleAdd}

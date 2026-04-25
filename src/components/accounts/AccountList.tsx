@@ -1,12 +1,13 @@
+import { useState } from 'react';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import ListItemText from '@mui/material/ListItemText';
 import IconButton from '@mui/material/IconButton';
 import Alert from '@mui/material/Alert';
 import Typography from '@mui/material/Typography';
-import Stack from '@mui/material/Stack';
-import Edit from '@mui/icons-material/Edit';
-import Delete from '@mui/icons-material/Delete';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import MoreVert from '@mui/icons-material/MoreVert';
 import type { Account } from '../../types';
 import { formatMXN } from '../../utils/currency';
 
@@ -18,6 +19,29 @@ export interface AccountListProps {
 }
 
 export default function AccountList({ accounts, onEdit, onDelete, error }: AccountListProps) {
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [activeAccountId, setActiveAccountId] = useState<string | null>(null);
+
+  const openActionsMenu = (event: React.MouseEvent<HTMLElement>, accountId: string) => {
+    setAnchorEl(event.currentTarget);
+    setActiveAccountId(accountId);
+  };
+
+  const closeActionsMenu = () => {
+    setAnchorEl(null);
+    setActiveAccountId(null);
+  };
+
+  const handleEdit = (account: Account) => {
+    onEdit(account);
+    closeActionsMenu();
+  };
+
+  const handleDelete = (id: string) => {
+    onDelete(id);
+    closeActionsMenu();
+  };
+
   if (accounts.length === 0 && !error) {
     return <Typography color="text.secondary">No hay cuentas</Typography>;
   }
@@ -29,19 +53,29 @@ export default function AccountList({ accounts, onEdit, onDelete, error }: Accou
           {error}
         </Alert>
       )}
-      <List>
+      <List disablePadding sx={{ border: '1px solid', borderColor: 'divider' }}>
         {accounts.map((account) => (
           <ListItem
             key={account.id}
+            sx={{ borderBottom: '1px solid', borderColor: 'divider' }}
             secondaryAction={
-              <Stack direction="row" spacing={1}>
-                <IconButton edge="end" aria-label="editar" onClick={() => onEdit(account)}>
-                  <Edit />
+              <>
+                <IconButton
+                  edge="end"
+                  aria-label="opciones"
+                  onClick={(e) => openActionsMenu(e, account.id)}
+                >
+                  <MoreVert />
                 </IconButton>
-                <IconButton edge="end" aria-label="eliminar" onClick={() => onDelete(account.id)}>
-                  <Delete />
-                </IconButton>
-              </Stack>
+                <Menu
+                  anchorEl={activeAccountId === account.id ? anchorEl : null}
+                  open={activeAccountId === account.id && Boolean(anchorEl)}
+                  onClose={closeActionsMenu}
+                >
+                  <MenuItem onClick={() => handleEdit(account)}>Editar</MenuItem>
+                  <MenuItem onClick={() => handleDelete(account.id)}>Eliminar</MenuItem>
+                </Menu>
+              </>
             }
           >
             <ListItemText

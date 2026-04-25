@@ -92,8 +92,8 @@ export default function ImportExportPage() {
   };
 
   return (
-    <Box sx={{ p: 3, maxWidth: 800, mx: 'auto' }}>
-      <Typography variant="h4" gutterBottom>
+    <Box sx={{ p: 3, maxWidth: 800, mx: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <Typography variant="h4" gutterBottom sx={{ textAlign: 'center' }}>
         Importar / Exportar
       </Typography>
 
