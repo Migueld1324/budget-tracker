@@ -205,8 +205,7 @@ function transferenciaArb(accounts: string[]) {
     amount: fc.integer({ min: 1, max: 10_000_000 }),
     description: safeNameArb,
     period: periodArb,
-  }).filter(r => accounts.length >= 2)
-    .chain(r => {
+  }).chain(r => {
       const remaining = accounts.filter((_, i) => i !== r.srcIdx);
       return fc.constantFrom(...remaining).map(dest => ({
         ...r,

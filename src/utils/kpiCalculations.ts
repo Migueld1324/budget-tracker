@@ -1,5 +1,4 @@
 import type { Transaction, Account, AccountBalance, TrendIndicator } from '../types';
-import { isTDC } from './validators';
 
 /**
  * Calculates total income: sum of amounts where type === 'Ingreso'.

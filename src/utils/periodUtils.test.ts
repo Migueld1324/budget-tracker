@@ -7,7 +7,7 @@ import {
   formatPeriod,
   isTransactionInPeriod,
 } from './periodUtils';
-import type { Transaction, TransactionType } from '../types';
+import type { Transaction } from '../types';
 import { Timestamp } from 'firebase/firestore';
 
 const makeTransaction = (period: string): Transaction => ({
@@ -118,24 +118,6 @@ describe('Property 18: Filtrado de transacciones por período', () => {
     fc.integer({ min: 0, max: 11 }),
     fc.integer({ min: 2020, max: 2030 })
   ).map(([monthIdx, year]) => `${spanishMonths[monthIdx]}-${year}`);
-
-  const transactionTypeArb: fc.Arbitrary<TransactionType> = fc.constantFrom('Ingreso' as const, 'Gasto' as const, 'Transferencia' as const);
-
-  const transactionArb = (period: string): fc.Arbitrary<Transaction> =>
-    fc.record({
-      id: fc.uuid(),
-      userId: fc.constant('user1'),
-      date: fc.constant('2026-04-05'),
-      type: transactionTypeArb,
-      category: fc.string({ minLength: 1, maxLength: 20 }),
-      source: fc.constant('BBVA'),
-      destination: fc.constant(null),
-      amount: fc.integer({ min: 1, max: 10_000_000 }),
-      description: fc.string({ maxLength: 50 }),
-      period: fc.constant(period),
-      createdAt: fc.constant(Timestamp.now()),
-      updatedAt: fc.constant(Timestamp.now()),
-    });
 
   it('filtering returns exactly the transactions whose period matches the selected period', () => {
     fc.assert(
@@ -254,12 +236,6 @@ describe('Property 26: Agrupación de transacciones por período', () => {
     fc.integer({ min: 0, max: 11 }),
     fc.integer({ min: 2020, max: 2030 })
   ).map(([monthIdx, year]) => `${spanishMonths[monthIdx]}-${year}`);
-
-  const transactionTypeArb: fc.Arbitrary<TransactionType> = fc.constantFrom(
-    'Ingreso' as const,
-    'Gasto' as const,
-    'Transferencia' as const
-  );
 
   const makeTransactionWithPeriod = (period: string, index: number): Transaction => ({
     id: `txn-${index}`,

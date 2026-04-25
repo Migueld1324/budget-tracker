@@ -15,7 +15,7 @@ export interface AccountFormProps {
 
 const accountSchema = z.object({
   name: z.string().min(1, 'El nombre es obligatorio'),
-  initialBalance: z.number({ invalid_type_error: 'Ingrese un monto válido' }),
+  initialBalance: z.number({ message: 'Ingrese un monto válido' }),
 });
 
 type FormValues = z.infer<typeof accountSchema>;

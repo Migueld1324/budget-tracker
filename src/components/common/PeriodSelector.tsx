@@ -5,14 +5,14 @@ import MenuItem from '@mui/material/MenuItem';
 import type { SelectChangeEvent } from '@mui/material/Select';
 import { useUIStore } from '../../store/uiStore';
 import { useTransactionStore } from '../../store/transactionStore';
-import { formatPeriod, parsePeriod, getCurrentPeriod } from '../../utils/periodUtils';
+import { parsePeriod, getCurrentPeriod } from '../../utils/periodUtils';
 
 const MONTH_NAMES = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
 ];
 
-export function periodToDisplay(period: string): string {
+function periodToDisplay(period: string): string {
   const { month, year } = parsePeriod(period);
   return `${MONTH_NAMES[month - 1]}, ${year}`;
 }
