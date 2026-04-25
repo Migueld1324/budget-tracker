@@ -172,7 +172,7 @@ export default function DashboardPage() {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', pl: { xs: 6, md: 0 } }}>
         <PeriodSelector />
       </Box>
 
