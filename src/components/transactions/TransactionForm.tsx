@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, Controller, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import Box from '@mui/material/Box';
@@ -93,7 +93,6 @@ export default function TransactionForm({
   const {
     control,
     handleSubmit,
-    watch,
     setValue,
     formState: { errors },
   } = useForm<FormValues>({
@@ -109,7 +108,7 @@ export default function TransactionForm({
     },
   });
 
-  const selectedType = watch('type');
+  const selectedType = useWatch({ control, name: 'type' });
 
   const isSourceEnabled = selectedType === 'Gasto' || selectedType === 'Transferencia';
   const isDestinationEnabled = selectedType === 'Ingreso' || selectedType === 'Transferencia';
