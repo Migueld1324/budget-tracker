@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
@@ -44,6 +44,9 @@ export default function TransactionsPage() {
 
   const [dialog, setDialog] = useState<DialogState>({ open: false, editId: null });
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [actionsWrapped, setActionsWrapped] = useState(false);
+  const titleRef = useRef<HTMLHeadingElement | null>(null);
+  const actionsRef = useRef<HTMLDivElement | null>(null);
   const userId = user?.uid ?? '';
 
   useEffect(() => {
@@ -58,6 +61,25 @@ export default function TransactionsPage() {
     if (!categories.Ingreso.length && !categories.Gasto.length) fetchCategories(userId);
     if (allTransactions.length === 0) fetchAll(userId);
   }, [userId]);
+
+  useEffect(() => {
+    const checkWrap = () => {
+      if (!titleRef.current || !actionsRef.current) return;
+      setActionsWrapped(actionsRef.current.offsetTop > titleRef.current.offsetTop + 1);
+    };
+
+    checkWrap();
+
+    const observer = new ResizeObserver(() => checkWrap());
+    if (titleRef.current) observer.observe(titleRef.current);
+    if (actionsRef.current) observer.observe(actionsRef.current);
+
+    window.addEventListener('resize', checkWrap);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', checkWrap);
+    };
+  }, []);
 
   const openAddDialog = useCallback(() => setDialog({ open: true, editId: null }), []);
   const openEditDialog = useCallback((id: string, data: Partial<TransactionInput>) => {
@@ -85,9 +107,18 @@ export default function TransactionsPage() {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       {isLoading && <LinearProgress sx={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1200, height: 3 }} />}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1, pl: { xs: 6, md: 0 } }}>
-        <Typography variant="h5" sx={{ fontWeight: 600 }}>Transacciones</Typography>
-        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', ml: 'auto' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
+        <Typography ref={titleRef} variant="h5" sx={{ fontWeight: 600, pl: { xs: 6, md: 0 } }}>Transacciones</Typography>
+        <Box
+          ref={actionsRef}
+          sx={{
+            display: 'flex',
+            gap: 1,
+            alignItems: 'center',
+            ml: 'auto',
+            mr: actionsWrapped ? 'auto' : 0,
+          }}
+        >
           <PeriodSelector />
           <Button variant="contained" size="small" startIcon={<Add />} onClick={openAddDialog} sx={{}}>Agregar</Button>
           <Button size="small" startIcon={<FilterList />} onClick={() => setFiltersOpen(!filtersOpen)} sx={{}}>Filtros</Button>
