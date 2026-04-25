@@ -4,19 +4,13 @@ import Typography from '@mui/material/Typography';
 import CircularProgress from '@mui/material/CircularProgress';
 import Paper from '@mui/material/Paper';
 import { useTheme } from '@mui/material/styles';
-import {
-  PieChart, Pie, Cell, Tooltip as ReTooltip, ResponsiveContainer,
-  Bar, XAxis, YAxis, CartesianGrid, ComposedChart, Line, BarChart,
-} from 'recharts';
-
+import ReactECharts from 'echarts-for-react';
 import { useAuthStore } from '../store/authStore';
 import { useTransactionStore } from '../store/transactionStore';
 import { useAccountStore } from '../store/accountStore';
 import { useUIStore } from '../store/uiStore';
-
 import PeriodSelector from '../components/common/PeriodSelector';
 import KPIPanel from '../components/kpis/KPIPanel';
-import AccountBalanceChart from '../components/charts/AccountBalanceChart';
 import {
   calculateTotalIncome, calculateTotalExpenses, calculateTotalEgresos,
   calculateBalance, calculateExpensesByCategory, calculateDailyExpenseAverage,
@@ -27,217 +21,81 @@ import { formatMXN } from '../utils/currency';
 import type { KPIValues, Transaction, Account } from '../types';
 
 const PIE_COLORS = {
-  light: ['#09297A', '#5C6BC0', '#c62828', '#e65100', '#2e7d32', '#00838f', '#4527a0', '#bf360c', '#1b5e20', '#880e4f'],
-  dark:  ['#7B9CFF', '#9FA8DA', '#ef9a9a', '#ffb74d', '#81c784', '#80DEEA', '#B39DDB', '#FFAB91', '#A5D6A7', '#F48FB1'],
+  light: ['#001391', '#573b95', '#f72717', '#0c6dff', '#8b6fc0', '#3a7f5a', '#ec407a', '#9ccc65', '#7e57c2', '#ff7043'],
+  dark:  ['#4d5fff', '#7b5fbf', '#f72717', '#4d9fff', '#b49bdf', '#5aaf82', '#ec407a', '#9ccc65', '#7e57c2', '#ff7043'],
 };
 
-function buildKPIs(
-  transactions: Transaction[],
-  accounts: Parameters<typeof calculateTotalEgresos>[1],
-  allTransactions: Transaction[],
-): KPIValues {
-  const totalIncome = calculateTotalIncome(transactions);
-  const totalExpenses = calculateTotalExpenses(transactions);
-  const totalEgresos = calculateTotalEgresos(transactions, accounts);
-  const balance = calculateBalance(totalIncome, totalExpenses);
-  const expensesByCategory = calculateExpensesByCategory(transactions);
-  const dailyExpenseAverage = calculateDailyExpenseAverage(transactions);
-  const topExpenseCategory = calculateTopExpenseCategory(transactions);
-  const tdcDebt = calculateTDCDebt(accounts, allTransactions);
-  const savingsRate = calculateSavingsRate(totalIncome, totalEgresos);
-  return { totalIncome, totalExpenses, totalEgresos, balance, expensesByCategory, dailyExpenseAverage, topExpenseCategory, tdcDebt, savingsRate };
+function buildKPIs(txns: Transaction[], accounts: Account[], allTxns: Transaction[]): KPIValues {
+  const totalIncome = calculateTotalIncome(txns);
+  const totalExpenses = calculateTotalExpenses(txns);
+  const totalEgresos = calculateTotalEgresos(txns, accounts);
+  return {
+    totalIncome, totalExpenses, totalEgresos,
+    balance: calculateBalance(totalIncome, totalExpenses),
+    expensesByCategory: calculateExpensesByCategory(txns),
+    dailyExpenseAverage: calculateDailyExpenseAverage(txns),
+    topExpenseCategory: calculateTopExpenseCategory(txns),
+    tdcDebt: calculateTDCDebt(accounts, allTxns),
+    savingsRate: calculateSavingsRate(totalIncome, totalEgresos),
+  };
 }
 
-function buildDailyFlow(transactions: Transaction[]): { day: string; income: number; expense: number; periodBalance: number; trend: number }[] {
-  const incomeMap = new Map<string, number>();
-  const expenseMap = new Map<string, number>();
+function buildDailyFlow(transactions: Transaction[]) {
+  const incMap = new Map<string, number>();
+  const expMap = new Map<string, number>();
   const dates = new Set<string>();
   for (const t of transactions) {
     if (t.type === 'Transferencia') continue;
     dates.add(t.date);
-    if (t.type === 'Ingreso') {
-      incomeMap.set(t.date, (incomeMap.get(t.date) ?? 0) + t.amount);
-    } else {
-      expenseMap.set(t.date, (expenseMap.get(t.date) ?? 0) + t.amount);
-    }
+    if (t.type === 'Ingreso') incMap.set(t.date, (incMap.get(t.date) ?? 0) + t.amount);
+    else expMap.set(t.date, (expMap.get(t.date) ?? 0) + t.amount);
   }
-  const sortedDates = Array.from(dates).sort();
-  if (sortedDates.length === 0) return [];
-
+  const sorted = Array.from(dates).sort();
   let cum = 0;
-  const raw = sortedDates.map(d => {
-    const inc = incomeMap.get(d) ?? 0;
-    const exp = expenseMap.get(d) ?? 0;
+  const raw = sorted.map(d => {
+    const inc = incMap.get(d) ?? 0;
+    const exp = expMap.get(d) ?? 0;
     cum += inc - exp;
-    return { day: d.slice(5), income: inc, expense: -exp, periodBalance: cum };
+    return { day: d.slice(5), income: inc, expense: -exp, balance: cum };
   });
-
+  // Trend
   const n = raw.length;
-  let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
-  for (let i = 0; i < n; i++) {
-    sumX += i; sumY += raw[i].periodBalance; sumXY += i * raw[i].periodBalance; sumX2 += i * i;
-  }
-  const denom = n * sumX2 - sumX * sumX;
-  const slope = denom !== 0 ? (n * sumXY - sumX * sumY) / denom : 0;
-  const intercept = (sumY - slope * sumX) / n;
-
-  return raw.map((p, i) => ({ ...p, trend: intercept + slope * i }));
+  if (n === 0) return [];
+  let sx = 0, sy = 0, sxy = 0, sx2 = 0;
+  for (let i = 0; i < n; i++) { sx += i; sy += raw[i].balance; sxy += i * raw[i].balance; sx2 += i * i; }
+  const d = n * sx2 - sx * sx;
+  const slope = d ? (n * sxy - sx * sy) / d : 0;
+  const intercept = (sy - slope * sx) / n;
+  return raw.map((p, i) => ({ ...p, trend: Math.round(intercept + slope * i) }));
 }
 
-/** Build daily running balance for an account within the selected period */
-/** Build per-transaction flow data for an account in the selected period */
-function buildAccountFlow(
-  account: Account,
-  periodTransactions: Transaction[],
-): { day: string; amount: number; periodBalance: number; trend: number }[] {
-  const acctTxs = periodTransactions
-    .filter(t => {
-      const srcMatch = t.source != null && t.source === account.name;
-      const dstMatch = t.destination != null && t.destination === account.name;
-      return srcMatch || dstMatch;
-    })
-    .sort((a, b) => {
-      const dateCmp = a.date.localeCompare(b.date);
-      if (dateCmp !== 0) return dateCmp;
-      const aTime = a.createdAt?.seconds ?? 0;
-      const bTime = b.createdAt?.seconds ?? 0;
-      return aTime - bTime;
-    });
-
+function buildAccountFlow(account: Account, txns: Transaction[]) {
+  const acctTxs = txns
+    .filter(t => (t.source != null && t.source === account.name) || (t.destination != null && t.destination === account.name))
+    .sort((a, b) => a.date.localeCompare(b.date) || ((a.createdAt?.seconds ?? 0) - (b.createdAt?.seconds ?? 0)));
   if (acctTxs.length === 0) return [];
-
-  const raw: { day: string; amount: number; periodBalance: number }[] = [];
-  let cumulative = 0;
-  for (let i = 0; i < acctTxs.length; i++) {
-    const t = acctTxs[i];
-    let amount = 0;
-    if (t.destination === account.name) amount += t.amount;
-    if (t.source === account.name) amount -= t.amount;
-    cumulative += amount;
-    const dateStr = t.date.slice(5);
-    raw.push({ day: `${dateStr} #${i + 1}`, amount, periodBalance: cumulative });
-  }
-
-  // Linear regression on periodBalance for trend line
+  let cum = 0;
+  const raw = acctTxs.map((t, i) => {
+    let amt = 0;
+    if (t.destination === account.name) amt += t.amount;
+    if (t.source === account.name) amt -= t.amount;
+    cum += amt;
+    return { day: `${t.date.slice(5)} #${i + 1}`, amount: amt, balance: cum };
+  });
   const n = raw.length;
-  let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
-  for (let i = 0; i < n; i++) {
-    sumX += i; sumY += raw[i].periodBalance; sumXY += i * raw[i].periodBalance; sumX2 += i * i;
-  }
-  const denom = n * sumX2 - sumX * sumX;
-  const slope = denom !== 0 ? (n * sumXY - sumX * sumY) / denom : 0;
-  const intercept = (sumY - slope * sumX) / n;
-
-  return raw.map((p, i) => ({ ...p, trend: intercept + slope * i }));
+  let sx = 0, sy = 0, sxy = 0, sx2 = 0;
+  for (let i = 0; i < n; i++) { sx += i; sy += raw[i].balance; sxy += i * raw[i].balance; sx2 += i * i; }
+  const d = n * sx2 - sx * sx;
+  const slope = d ? (n * sxy - sx * sy) / d : 0;
+  const intercept = (sy - slope * sx) / n;
+  return raw.map((p, i) => ({ ...p, trend: Math.round(intercept + slope * i) }));
 }
 
-
-function PieTooltipContent({ active, payload }: any) {
-  if (!active || !payload?.length) return null;
-  return (
-    <Paper sx={{ p: 1 }}>
-      <Typography variant="body2">{payload[0].name}</Typography>
-      <Typography variant="body2" color="primary">{formatMXN(payload[0].value)}</Typography>
-    </Paper>
-  );
+function fmtAxis(v: number) {
+  const n = Math.round(v / 100);
+  const a = Math.abs(n);
+  return (n < 0 ? '-' : '') + (a >= 1000 ? '$' + (a / 1000).toFixed(0) + 'K' : '$' + a.toLocaleString('es-MX'));
 }
-
-function FlowTooltipContent({ active, payload }: any) {
-  if (!active || !payload?.length) return null;
-  const balEntry = payload.find((p: any) => p.dataKey === 'periodBalance');
-  const amtEntry = payload.find((p: any) => p.dataKey === 'amount');
-  return (
-    <Paper sx={{ p: 1 }}>
-      {amtEntry && (
-        <Typography variant="body2" sx={{ color: amtEntry.stroke || amtEntry.fill }}>
-          Transacción: {formatMXN(amtEntry.value)}
-        </Typography>
-      )}
-      {balEntry && (
-        <Typography variant="body2" sx={{ color: balEntry.fill }}>
-          Balance: {formatMXN(balEntry.value)}
-        </Typography>
-      )}
-    </Paper>
-  );
-}
-
-function DailyFlowTooltip({ active, payload, label }: any) {
-  if (!active || !payload?.length) return null;
-  const bal = payload.find((p: any) => p.dataKey === 'periodBalance');
-  const inc = payload.find((p: any) => p.dataKey === 'income');
-  const exp = payload.find((p: any) => p.dataKey === 'expense');
-  return (
-    <Paper sx={{ p: 1 }}>
-      <Typography variant="body2" sx={{ fontWeight: 600 }}>{label}</Typography>
-      {inc && inc.value > 0 && (
-        <Typography variant="body2" sx={{ color: inc.stroke }}>
-          Ingresos: {formatMXN(inc.value)}
-        </Typography>
-      )}
-      {exp && exp.value !== 0 && (
-        <Typography variant="body2" sx={{ color: exp.stroke }}>
-          Gastos: {formatMXN(Math.abs(exp.value))}
-        </Typography>
-      )}
-      {bal && (
-        <Typography variant="body2" sx={{ color: bal.fill }}>
-          Balance: {formatMXN(bal.value)}
-        </Typography>
-      )}
-    </Paper>
-  );
-}
-
-
-
-
-function ThermometerChart({ income, expenses }: { income: number; expenses: number }) {
-  const theme = useTheme();
-  const base = income > 0 ? income : 1;
-  const expensePct = Math.min((expenses / base) * 100, 100);
-  const remainPct = 100 - expensePct;
-  const greenColor = theme.palette.mode === 'dark' ? '#81c784' : '#2e7d32';
-  const redColor = theme.palette.mode === 'dark' ? '#ef9a9a' : '#c62828';
-  const data = [{ name: 'Flujo', gastos: expensePct, disponible: remainPct, gastosAmt: expenses, disponibleAmt: income - expenses }];
-
-  return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      <ResponsiveContainer width="100%" height={50}>
-        <BarChart data={data} layout="vertical" stackOffset="expand" margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
-          <XAxis type="number" hide />
-          <YAxis type="category" dataKey="name" hide />
-          <ReTooltip content={<ThermTooltip />} cursor={{ fill: 'transparent' }} />
-          <Bar dataKey="gastos" stackId="a" fill={redColor} radius={[4, 0, 0, 4]} />
-          <Bar dataKey="disponible" stackId="a" fill={greenColor} radius={[0, 4, 4, 0]} />
-        </BarChart>
-      </ResponsiveContainer>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: redColor }} />
-          <Typography variant="body2" sx={{ fontWeight: 600 }}>Gastos: {expensePct.toFixed(2)}%</Typography>
-        </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: greenColor }} />
-          <Typography variant="body2" sx={{ fontWeight: 600 }}>Disponible: {remainPct.toFixed(2)}%</Typography>
-        </Box>
-      </Box>
-    </Box>
-  );
-}
-function ThermTooltip({ active, payload }: any) {
-  if (!active || !payload?.length) return null;
-  const d = payload[0]?.payload;
-  if (!d) return null;
-  return (
-    <Paper sx={{ p: 1 }}>
-      <Typography variant="body2" sx={{ color: payload[0]?.fill }}>Gastos: {formatMXN(d.gastosAmt)}</Typography>
-      <Typography variant="body2" sx={{ color: payload[1]?.fill }}>Disponible: {formatMXN(d.disponibleAmt)}</Typography>
-    </Paper>
-  );
-}
-
-
 
 export default function DashboardPage() {
   const user = useAuthStore((s) => s.user);
@@ -249,139 +107,133 @@ export default function DashboardPage() {
   const fetchAll = useTransactionStore((s) => s.fetchAll);
   const accounts = useAccountStore((s) => s.accounts);
   const fetchAccounts = useAccountStore((s) => s.fetchAccounts);
+  const accLoading = useAccountStore((s) => s.loading);
   const theme = useTheme();
+  const mode = theme.palette.mode;
   const userId = user?.uid ?? '';
+  const colors = PIE_COLORS[mode];
+  const greenC = '#66bb6a';
+  const greenLineC = mode === 'dark' ? '#66bb6a' : '#388e3c';
+  const redC = '#ef5350';
+  const redLineC = mode === 'dark' ? '#ef5350' : '#d32f2f';
+  const trendC = mode === 'dark' ? '#ff9800' : '#e65100';
 
-  useEffect(() => {
-    if (!userId) return;
-    fetchByPeriod(userId, selectedPeriod);
-  }, [userId, selectedPeriod, fetchByPeriod]);
+  // Pick a trend color that contrasts with the bar color
+  function getTrendColor(barColor: string): string {
+    // Same logic for both modes
+    // Map bar colors to contrasting trend colors
+    // blue/green bars → red trend, red bars → blue trend, purple bars → orange trend
+    const r = parseInt(barColor.slice(1, 3), 16);
+    const g = parseInt(barColor.slice(3, 5), 16);
+    const b = parseInt(barColor.slice(5, 7), 16);
+    // Determine dominant hue
+    if (r > 200 && g < 100) return '#1565c0'; // red → blue
+    if (b > 150 && r < 100) return '#d32f2f'; // blue → red
+    if (g > 100 && r < 100 && b < 100) return '#d32f2f'; // green → red
+    if (r > 50 && b > 100 && r < 150) return '#e65100'; // purple → orange
+    return '#d32f2f'; // default red
+  }
+  const txtC = theme.palette.text.primary;
+  const bgC = theme.palette.background.paper;
 
-  useEffect(() => {
-    if (!userId) return;
-    fetchAll(userId);
-    fetchAccounts(userId);
-  }, [userId, fetchAll, fetchAccounts]);
+  useEffect(() => { if (userId) fetchByPeriod(userId, selectedPeriod); }, [userId, selectedPeriod, fetchByPeriod]);
+  useEffect(() => { if (userId) { fetchAll(userId); fetchAccounts(userId); } }, [userId, fetchAll, fetchAccounts]);
 
-  const currentKPIs = useMemo(() => buildKPIs(transactions, accounts, allTransactions), [transactions, accounts, allTransactions]);
-  const previousKPIs = useMemo(() => {
-    const prev = allTransactions.filter((t) => isTransactionInPeriod(t, getPreviousPeriod(selectedPeriod)));
-    if (prev.length === 0) return null;
-    return buildKPIs(prev, accounts, allTransactions);
+  const cur = useMemo(() => buildKPIs(transactions, accounts, allTransactions), [transactions, accounts, allTransactions]);
+  const prev = useMemo(() => {
+    const p = allTransactions.filter(t => isTransactionInPeriod(t, getPreviousPeriod(selectedPeriod)));
+    return p.length === 0 ? null : buildKPIs(p, accounts, allTransactions);
   }, [selectedPeriod, allTransactions, accounts]);
 
-  const pieData = useMemo(() => {
-    return Array.from(currentKPIs.expensesByCategory.entries())
-      .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value);
-  }, [currentKPIs.expensesByCategory]);
-
+  const pieData = useMemo(() => Array.from(cur.expensesByCategory.entries()).map(([n, v]) => ({ name: n, value: v })).sort((a, b) => b.value - a.value), [cur.expensesByCategory]);
   const dailyData = useMemo(() => buildDailyFlow(transactions), [transactions]);
+  const accountBalances = useMemo(() => accounts.filter(a => allTransactions.filter(t => t.source === a.name || t.destination === a.name).length >= 2).map(a => ({ name: a.name, balance: calculateAccountBalance(a, allTransactions).balance })).sort((a, b) => b.balance - a.balance), [accounts, allTransactions]);
+  const accountHistories = useMemo(() => accounts.filter(a => transactions.some(t => t.source === a.name || t.destination === a.name)).map(a => ({ account: a, data: buildAccountFlow(a, transactions) })).filter(h => h.data.length > 1), [accounts, transactions]);
 
-  // Account total balances (initial + all historical transactions)
-  const accountBalances = useMemo(() => {
-    return accounts
-      .filter(acc => allTransactions.filter(t => t.source === acc.name || t.destination === acc.name).length >= 2)
-      .map(acc => {
-        const bal = calculateAccountBalance(acc, allTransactions);
-        return { name: acc.name, balance: bal.balance };
-      }).sort((a, b) => b.balance - a.balance);
-  }, [accounts, allTransactions]);
+  const isInitialLoad = (txLoading || accLoading) && (transactions.length === 0 || accounts.length === 0 || allTransactions.length === 0);
+  if (isInitialLoad) return <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>;
 
-  // Build history for accounts with transactions in the selected period
-  const accountHistories = useMemo(() => {
-    const activeAccounts = accounts.filter(acc =>
-      transactions.some(t => t.source === acc.name || t.destination === acc.name)
-    );
-    return activeAccounts
-      .map(acc => ({ account: acc, data: buildAccountFlow(acc, transactions) }))
-      .filter(h => h.data.length > 1);
-  }, [accounts, transactions]);
+  // Common ECharts options
+  const baseOpts = { animation: true, animationDuration: 300, backgroundColor: 'transparent', textStyle: { color: txtC } };
+  const gridOpts = { left: 70, right: 10, top: 10, bottom: 10, containLabel: false };
+  const tooltipOpts = { trigger: 'axis' as const, backgroundColor: bgC, borderColor: theme.palette.divider, textStyle: { color: txtC }, formatter: (params: any) => { const items = Array.isArray(params) ? params : [params]; return items.map((p: any) => `<span style="color:${p.color}">\u25CF</span> ${p.seriesName}: ${formatMXN(p.value)}`).join('<br/>'); } };
 
-  if (txLoading && transactions.length === 0) {
-    return <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>;
-  }
+  // Thermometer
+  const base = cur.totalIncome > 0 ? cur.totalIncome : 1;
+  const expPct = Math.min((cur.totalExpenses / base) * 100, 100);
+  const remPct = 100 - expPct;
+  const thermOpts = { ...baseOpts, tooltip: { ...tooltipOpts, trigger: 'item' as const, formatter: (p: any) => `${p.seriesName}: ${formatMXN(p.data.amt)}` }, xAxis: { type: 'value' as const, max: 100, show: false }, yAxis: { type: 'category' as const, data: [''], show: false }, series: [{ name: 'Gastos', type: 'bar' as const, stack: 'total', data: [{ value: expPct, amt: cur.totalExpenses }], itemStyle: { color: redC, borderRadius: [4, 0, 0, 4] } }, { name: 'Disponible', type: 'bar' as const, stack: 'total', data: [{ value: remPct, amt: cur.totalIncome - cur.totalExpenses }], itemStyle: { color: greenC, borderRadius: [0, 4, 4, 0] } }], grid: { left: 0, right: 0, top: 0, bottom: 0 } };
 
-  const textColor = theme.palette.text.primary;
+  // Pie
+  const pieOpts = { ...baseOpts, tooltip: { ...tooltipOpts, trigger: 'item' as const, formatter: (p: any) => `${p.name}: ${formatMXN(p.value)} (${p.percent}%)` }, series: [{ type: 'pie' as const, radius: '75%', data: pieData.map((d, i) => ({ ...d, itemStyle: { color: colors[i % colors.length] } })), label: { color: txtC, fontSize: 11 } }] };
+
+  // Balance bar
+  const balOpts = { ...baseOpts, tooltip: { ...tooltipOpts, trigger: 'axis' as const, formatter: (p: any) => { const d = Array.isArray(p) ? p[0] : p; return `${d.name}: ${formatMXN(d.value)}`; } }, xAxis: { type: 'value' as const, axisLabel: { formatter: fmtAxis, color: txtC, fontSize: 11 } }, yAxis: { type: 'category' as const, data: accountBalances.map(a => a.name), axisLabel: { color: txtC, fontSize: 12 } }, series: [{ type: 'bar' as const, data: accountBalances.map(a => ({ value: a.balance, itemStyle: { color: mode === 'dark' ? '#42a5f5' : '#1976d2', borderRadius: a.balance >= 0 ? [0, 4, 4, 0] : [4, 0, 0, 4] } })) }], grid: { left: 80, right: 10, top: 5, bottom: 5 } };
+
+  // Daily flow
+  const dailyOpts = dailyData.length > 0 ? { ...baseOpts, tooltip: tooltipOpts, xAxis: { type: 'category' as const, data: dailyData.map(d => d.day), show: false }, yAxis: { type: 'value' as const, axisLabel: { formatter: fmtAxis, color: txtC }, splitLine: { lineStyle: { color: theme.palette.divider } } }, series: [
+    { name: 'Balance', type: 'bar' as const, data: dailyData.map(d => d.balance), itemStyle: { color: mode === 'dark' ? '#90caf9' : '#90caf9', borderRadius: [4, 4, 0, 0] } },
+    { name: 'Ingresos', type: 'line' as const, data: dailyData.map(d => d.income), lineStyle: { color: greenLineC, width: 2 }, itemStyle: { color: greenLineC }, symbol: 'circle', symbolSize: 6, areaStyle: { color: greenLineC, opacity: 0.15 } },
+    { name: 'Gastos', type: 'line' as const, data: dailyData.map(d => d.expense), lineStyle: { color: redLineC, width: 2 }, itemStyle: { color: redLineC }, symbol: 'circle', symbolSize: 6, areaStyle: { color: redLineC, opacity: 0.15 } },
+    { name: 'Tendencia', type: 'line' as const, data: dailyData.map(d => d.trend), lineStyle: { color: trendC, width: 2.5 }, itemStyle: { color: trendC }, symbol: 'none' },
+  ], grid: gridOpts } : null;
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, animation: 'fadeIn 0.3s ease', '@keyframes fadeIn': { from: { opacity: 0 }, to: { opacity: 1 } } }}>
       <Box sx={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', pl: { xs: 6, md: 0 } }}>
         <PeriodSelector />
       </Box>
 
-      <KPIPanel currentPeriodKPIs={currentKPIs} previousPeriodKPIs={previousKPIs} />
+      <KPIPanel currentPeriodKPIs={cur} previousPeriodKPIs={prev} />
 
-      {/* Ingresos vs Gastos - full width */}
-      <Paper sx={{ p: 2 }}>
+      <Paper sx={{ p: 2, minWidth: 0, overflow: 'hidden' }}>
         <Typography variant="subtitle1" sx={{ fontWeight: 600 }} gutterBottom>Ingresos vs Gastos</Typography>
-        <ThermometerChart income={currentKPIs.totalIncome} expenses={currentKPIs.totalExpenses} />
+        <ReactECharts option={thermOpts} style={{ height: 40 }} opts={{ renderer: 'canvas' }} />
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: redC }} />
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>Gastos: {expPct.toFixed(2)}%</Typography>
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: greenC }} />
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>Disponible: {remPct.toFixed(2)}%</Typography>
+          </Box>
+        </Box>
       </Paper>
 
-      {/* Pie chart + Account balances side by side */}
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
-        <Paper sx={{ p: 2 }}>
+        <Paper sx={{ p: 2, minWidth: 0, overflow: 'hidden' }}>
           <Typography variant="subtitle1" sx={{ fontWeight: 600 }} gutterBottom>Gasto por Categoría</Typography>
-          {pieData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={350}>
-              <PieChart>
-                <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius="75%" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
-                  {pieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[theme.palette.mode][i % PIE_COLORS[theme.palette.mode].length]} />)}
-                </Pie>
-                <ReTooltip content={<PieTooltipContent />} />
-              </PieChart>
-            </ResponsiveContainer>
-          ) : <Typography color="text.secondary">Sin gastos en este período</Typography>}
+          {pieData.length > 0 ? <ReactECharts option={pieOpts} style={{ height: 350 }} opts={{ renderer: 'canvas' }} /> : <Typography color="text.secondary">Sin gastos</Typography>}
         </Paper>
-
-        <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column' }}>
+        <Paper sx={{ p: 2, minWidth: 0, overflow: 'hidden' }}>
           <Typography variant="subtitle1" sx={{ fontWeight: 600 }} gutterBottom>Balance por Cuenta</Typography>
-          <Box sx={{ flex: 1, minHeight: 0 }}>
-            <AccountBalanceChart data={accountBalances} />
-          </Box>
+          {accountBalances.length > 0 ? <ReactECharts option={balOpts} style={{ height: 350 }} opts={{ renderer: 'canvas' }} /> : <Typography color="text.secondary">Sin cuentas</Typography>}
         </Paper>
       </Box>
 
-      {dailyData.length > 0 && (
-        <Paper sx={{ p: 2 }}>
+      {dailyOpts && (
+        <Paper sx={{ p: 2, minWidth: 0, overflow: 'hidden' }}>
           <Typography variant="subtitle1" sx={{ fontWeight: 600 }} gutterBottom>Flujo Diario</Typography>
-          <ResponsiveContainer width="100%" height={250}>
-            <ComposedChart data={dailyData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="day" tick={false} height={10} />
-              <YAxis tickFormatter={(v) => { const n = Math.round(v / 100); const a = Math.abs(n); return (n < 0 ? '-' : '') + (a >= 1000 ? '$' + (a/1000).toFixed(0) + 'K' : '$' + a.toLocaleString('es-MX')); }} tick={{ fill: textColor }} width={70} />
-              <ReTooltip content={<DailyFlowTooltip />} />
-              <Bar dataKey="periodBalance" name="Balance" fill={theme.palette.secondary.main} radius={[4, 4, 0, 0]} />
-              <Line type="monotone" dataKey="income" name="Ingresos" stroke={theme.palette.mode === 'dark' ? '#81c784' : '#2e7d32'} strokeWidth={2} dot={{ r: 4, fill: theme.palette.mode === 'dark' ? '#81c784' : '#2e7d32' }} />
-              <Line type="monotone" dataKey="expense" name="Gastos" stroke={theme.palette.mode === 'dark' ? '#ef9a9a' : '#c62828'} strokeWidth={2} dot={{ r: 4, fill: theme.palette.mode === 'dark' ? '#ef9a9a' : '#c62828' }} />
-              <Line type="monotone" dataKey="trend" name="Tendencia" stroke={theme.palette.mode === 'dark' ? '#ce93d8' : '#7b1fa2'} strokeWidth={2.5} dot={false} />
-            </ComposedChart>
-          </ResponsiveContainer>
+          <ReactECharts option={dailyOpts} style={{ height: 250 }} opts={{ renderer: 'canvas' }} />
         </Paper>
       )}
 
-      {/* Account transaction flow charts */}
       {accountHistories.length > 0 && (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Flujo por Cuenta</Typography>
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
             {accountHistories.map(({ account, data }, idx) => {
-              const color = PIE_COLORS[theme.palette.mode][idx % PIE_COLORS[theme.palette.mode].length];
-              const amtColor = theme.palette.mode === 'dark' ? '#ffb74d' : '#e65100';
+              const color = colors[idx % colors.length];
+              const opts = { ...baseOpts, tooltip: tooltipOpts, xAxis: { type: 'category' as const, data: data.map(d => d.day), show: false }, yAxis: { type: 'value' as const, axisLabel: { formatter: fmtAxis, color: txtC }, splitLine: { lineStyle: { color: theme.palette.divider } } }, series: [
+                { name: 'Balance', type: 'bar' as const, data: data.map(d => d.balance), itemStyle: { color, borderRadius: [4, 4, 0, 0] } },
+                { name: 'Transacción', type: 'line' as const, data: data.map(d => d.amount), lineStyle: { color: '#c6b353', width: 2 }, itemStyle: { color: '#c6b353' }, symbol: 'circle', symbolSize: 6, areaStyle: { color: '#c6b353', opacity: 0.3 } },
+                { name: 'Tendencia', type: 'line' as const, data: data.map(d => d.trend), lineStyle: { color: getTrendColor(color), width: 2.5 }, itemStyle: { color: getTrendColor(color) }, symbol: 'none' },
+              ], grid: gridOpts };
               return (
-                <Paper key={account.id} sx={{ p: 2 }}>
+                <Paper key={account.id} sx={{ p: 2, minWidth: 0, overflow: 'hidden' }}>
                   <Typography variant="body1" sx={{ fontWeight: 600, mb: 1 }}>{account.name}</Typography>
-                  <ResponsiveContainer width="100%" height={220}>
-                    <ComposedChart data={data}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="day" tick={false} height={10} />
-                      <YAxis tickFormatter={(v) => { const n = Math.round(v / 100); const a = Math.abs(n); return (n < 0 ? '-' : '') + (a >= 1000 ? '$' + (a/1000).toFixed(0) + 'K' : '$' + a.toLocaleString('es-MX')); }} tick={{ fill: textColor }} width={70} />
-                      <ReTooltip content={<FlowTooltipContent />} />
-                      <Bar dataKey="periodBalance" name="Balance período" fill={color} radius={[4, 4, 0, 0]} />
-                      <Line type="monotone" dataKey="amount" name="Transacción" stroke={amtColor} strokeWidth={2} dot={{ r: 4, fill: amtColor }} />
-                      <Line type="monotone" dataKey="trend" name="Tendencia" stroke={theme.palette.mode === 'dark' ? '#ce93d8' : '#7b1fa2'} strokeWidth={2.5} dot={false} />
-                    </ComposedChart>
-                  </ResponsiveContainer>
+                  <ReactECharts option={opts} style={{ height: 220 }} opts={{ renderer: 'canvas' }} />
                 </Paper>
               );
             })}

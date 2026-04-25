@@ -15,10 +15,10 @@ function prevFmt(v: number | null | undefined): string | null {
   return v == null ? null : formatMXN(v);
 }
 const KC = {
-  income: { light: '#2e7d32', dark: '#81c784' }, expenses: { light: '#c62828', dark: '#ef9a9a' },
-  egresos: { light: '#e65100', dark: '#ffb74d' }, balance: { light: '#09297A', dark: '#7B9CFF' },
-  daily: { light: '#5C6BC0', dark: '#9FA8DA' }, topCat: { light: '#4527a0', dark: '#B39DDB' },
-  tdc: { light: '#bf360c', dark: '#FFAB91' }, savings: { light: '#00838f', dark: '#80DEEA' },
+  income: { light: '#2e7d32', dark: '#4caf50' }, expenses: { light: '#c62828', dark: '#f44336' },
+  egresos: { light: '#e65100', dark: '#ff9800' }, balance: { light: '#09297A', dark: '#5C8AFF' },
+  daily: { light: '#5C6BC0', dark: '#7986CB' }, topCat: { light: '#4527a0', dark: '#9575CD' },
+  tdc: { light: '#bf360c', dark: '#ff7043' }, savings: { light: '#00838f', dark: '#26c6da' },
 } as const;
 
 const SPEED = 15; // pixels per second (time-based, not frame-based)

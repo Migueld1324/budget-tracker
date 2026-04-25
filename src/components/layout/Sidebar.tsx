@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Box from '@mui/material/Box';
 import Drawer from '@mui/material/Drawer';
 import List from '@mui/material/List';
@@ -44,12 +44,16 @@ function NavItem({ item, expanded, onNavigate }: { item: typeof NAV_ITEMS[0]; ex
     <ListItemButton
       selected={active}
       onClick={() => onNavigate(item.path)}
-      sx={{ minHeight: 48, justifyContent: expanded ? 'initial' : 'center', px: expanded ? 2 : 'auto', borderRadius: 1, mx: 0.5, mb: 0.5 }}
+      sx={{ minHeight: 48, px: 2, borderRadius: 1, mx: 0.5, mb: 0.5, overflow: 'hidden', justifyContent: expanded ? 'flex-start' : 'center' }}
     >
-      <ListItemIcon sx={{ minWidth: 0, mr: expanded ? 2 : 0, justifyContent: 'center', color: active ? 'primary.main' : 'text.secondary' }}>
+      <ListItemIcon sx={{ minWidth: 24, mr: expanded ? 2 : 0, justifyContent: 'center', color: active ? 'primary.main' : 'text.secondary' }}>
         {item.icon}
       </ListItemIcon>
-      {expanded && <ListItemText primary={item.label} slotProps={{ primary: { sx: { fontSize: 14, fontWeight: active ? 600 : 400 } } }} />}
+      <ListItemText
+        primary={item.label}
+        slotProps={{ primary: { sx: { fontSize: 14, fontWeight: active ? 600 : 400, whiteSpace: 'nowrap' } } }}
+        sx={{ opacity: expanded ? 1 : 0, transition: 'opacity 0.15s ease' }}
+      />
     </ListItemButton>
   );
   return expanded ? btn : <Tooltip title={item.label} placement="right">{btn}</Tooltip>;
@@ -66,12 +70,16 @@ function BottomActions({ expanded }: { expanded: boolean }) {
     const btn = (
       <ListItemButton
         onClick={onClick}
-        sx={{ minHeight: 48, justifyContent: expanded ? 'initial' : 'center', px: expanded ? 2 : 'auto', borderRadius: 1, mx: 0.5, mb: 0.5 }}
+        sx={{ minHeight: 48, px: 2, borderRadius: 1, mx: 0.5, mb: 0.5, overflow: 'hidden', justifyContent: expanded ? 'flex-start' : 'center' }}
       >
-        <ListItemIcon sx={{ minWidth: 0, mr: expanded ? 2 : 0, justifyContent: 'center', color: 'text.secondary' }}>
+        <ListItemIcon sx={{ minWidth: 24, mr: expanded ? 2 : 0, justifyContent: 'center', color: 'text.secondary' }}>
           {icon}
         </ListItemIcon>
-        {expanded && <ListItemText primary={label} slotProps={{ primary: { sx: { fontSize: 14 } } }} />}
+        <ListItemText
+          primary={label}
+          slotProps={{ primary: { sx: { fontSize: 14, whiteSpace: 'nowrap' } } }}
+          sx={{ opacity: expanded ? 1 : 0, transition: 'opacity 0.15s ease' }}
+        />
       </ListItemButton>
     );
     return expanded ? btn : <Tooltip title={label} placement="right">{btn}</Tooltip>;
@@ -108,6 +116,8 @@ export default function Sidebar() {
   const isSmall = useMediaQuery(theme.breakpoints.down('md'));
   const [expanded, setExpanded] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const transitioning = useRef(false);
+  const [layoutWidth, setLayoutWidth] = useState(COLLAPSED_WIDTH);
   const navigate = useNavigate();
 
   const handleNavigate = (path: string) => {
@@ -155,15 +165,40 @@ export default function Sidebar() {
   }
 
   const width = expanded ? EXPANDED_WIDTH : COLLAPSED_WIDTH;
+
+  const handleToggle = () => {
+    const willExpand = !expanded;
+    transitioning.current = true;
+    setExpanded(willExpand);
+    setTimeout(() => {
+      setLayoutWidth(willExpand ? EXPANDED_WIDTH : COLLAPSED_WIDTH);
+      transitioning.current = false;
+    }, 220);
+  };
+
+  // Sync layoutWidth when not transitioning
+  useEffect(() => {
+    if (!transitioning.current) setLayoutWidth(width);
+  }, [width]);
+
   return (
     <Drawer
       variant="permanent"
       sx={{
-        width, flexShrink: 0,
-        '& .MuiDrawer-paper': { width, transition: 'width 0.2s ease', overflowX: 'hidden', display: 'flex', flexDirection: 'column', borderRight: 1, borderColor: 'divider' },
+        width: layoutWidth, flexShrink: 0,
+        '& .MuiDrawer-paper': {
+          width,
+          transition: 'width 0.2s ease',
+          overflowX: 'hidden',
+          overflowY: 'auto',
+          display: 'flex',
+          flexDirection: 'column',
+          borderRight: 1,
+          borderColor: 'divider',
+        },
       }}
     >
-      <DrawerContent expanded={expanded} onNavigate={handleNavigate} onClose={() => setExpanded(!expanded)} />
+      <DrawerContent expanded={expanded} onNavigate={handleNavigate} onClose={handleToggle} />
     </Drawer>
   );
 }
