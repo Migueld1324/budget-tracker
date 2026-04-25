@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
-import CircularProgress from '@mui/material/CircularProgress';
+import LinearProgress from '@mui/material/LinearProgress';
 import Paper from '@mui/material/Paper';
 import { useTheme } from '@mui/material/styles';
 import ReactECharts from 'echarts-for-react';
@@ -136,8 +136,8 @@ export default function DashboardPage() {
   const txtC = theme.palette.text.primary;
   const bgC = theme.palette.background.paper;
 
-  useEffect(() => { if (userId) fetchByPeriod(userId, selectedPeriod); }, [userId, selectedPeriod, fetchByPeriod]);
-  useEffect(() => { if (userId) { fetchAll(userId); fetchAccounts(userId); } }, [userId, fetchAll, fetchAccounts]);
+  useEffect(() => { if (userId && transactions.length === 0) fetchByPeriod(userId, selectedPeriod); }, [userId, selectedPeriod]);
+  useEffect(() => { if (userId) { if (allTransactions.length === 0) fetchAll(userId); if (accounts.length === 0) fetchAccounts(userId); } }, [userId]);
 
   const cur = useMemo(() => buildKPIs(transactions, accounts, allTransactions), [transactions, accounts, allTransactions]);
   const prev = useMemo(() => {
@@ -150,8 +150,7 @@ export default function DashboardPage() {
   const accountBalances = useMemo(() => accounts.filter(a => allTransactions.filter(t => t.source === a.name || t.destination === a.name).length >= 2).map(a => ({ name: a.name, balance: calculateAccountBalance(a, allTransactions).balance })).sort((a, b) => b.balance - a.balance), [accounts, allTransactions]);
   const accountHistories = useMemo(() => accounts.filter(a => transactions.some(t => t.source === a.name || t.destination === a.name)).map(a => ({ account: a, data: buildAccountFlow(a, transactions) })).filter(h => h.data.length > 1), [accounts, transactions]);
 
-  const isInitialLoad = (txLoading || accLoading) && (transactions.length === 0 || accounts.length === 0 || allTransactions.length === 0);
-  if (isInitialLoad) return <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>;
+  const isLoading = txLoading || accLoading;
 
   // Common ECharts options
   const baseOpts = { animation: true, animationDuration: 300, backgroundColor: 'transparent', textStyle: { color: txtC } };
@@ -179,7 +178,8 @@ export default function DashboardPage() {
   ], grid: gridOpts } : null;
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, animation: 'fadeIn 0.3s ease', '@keyframes fadeIn': { from: { opacity: 0 }, to: { opacity: 1 } } }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      {isLoading && <Box sx={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1200, height: 3 }}><LinearProgress sx={{ height: 3 }} /></Box>}
       <Box sx={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', pl: { xs: 6, md: 0 } }}>
         <PeriodSelector />
       </Box>

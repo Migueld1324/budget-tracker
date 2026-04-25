@@ -44,12 +44,13 @@ export default function PeriodSelector() {
   };
 
   return (
-    <FormControl size="small" sx={{ minWidth: 200 }}>
+    <FormControl size="small" sx={{ minWidth: 180 }}>
       <Select
         value={options.includes(selectedPeriod) ? selectedPeriod : ''}
         onChange={handleChange}
         aria-label="Selector de período"
         renderValue={(value) => periodToDisplay(value)}
+        sx={{ '& .MuiSelect-select': { py: 0.75, minHeight: 'unset !important' }, '& .MuiInputBase-root': { minHeight: 'unset' } }}
       >
         {options.map((period) => (
           <MenuItem key={period} value={period}>

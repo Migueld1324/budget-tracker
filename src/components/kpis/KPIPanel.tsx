@@ -53,6 +53,11 @@ export default function KPIPanel({ currentPeriodKPIs: cur, previousPeriodKPIs: p
         setOverflows(v);
         overRef.current = v;
         setW.current = a.scrollWidth;
+        // Reset position when switching from carousel to static
+        if (!v) {
+          pos.current = 0;
+          if (trackRef.current) trackRef.current.style.transform = '';
+        }
       }
     };
     check();
@@ -152,8 +157,8 @@ export default function KPIPanel({ currentPeriodKPIs: cur, previousPeriodKPIs: p
 
   return (
     <Box ref={outerRef} sx={{ overflow: 'hidden', py: 0.5, cursor: overflows ? 'grab' : 'default', userSelect: 'none', touchAction: overflows ? 'none' : 'auto' }}>
-      <Box ref={trackRef} sx={{ display: 'inline-flex', gap: 1.5, willChange: 'transform' }}>
-        <Box ref={setARef} sx={{ display: 'flex', gap: 1.5, flexShrink: 0 }}>{cards}</Box>
+      <Box ref={trackRef} sx={{ display: 'inline-flex', gap: 1.5, willChange: overflows ? 'transform' : 'auto', width: overflows ? 'max-content' : '100%' }}>
+        <Box ref={setARef} sx={{ display: 'flex', gap: 1.5, flexShrink: overflows ? 0 : 1, width: overflows ? 'max-content' : '100%' }}>{cards}</Box>
         {overflows && cset('b')}
       </Box>
     </Box>

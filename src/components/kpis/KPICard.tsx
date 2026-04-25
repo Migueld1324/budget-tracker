@@ -19,9 +19,7 @@ export default function KPICard({ title, currentValue, previousValue, trend, col
       variant="outlined"
       sx={{
         minWidth: 180,
-        maxWidth: 240,
-        flexShrink: 0,
-        scrollSnapAlign: 'start',
+        flex: '1 1 180px',
         borderLeft: `4px solid ${color}`,
       }}
     >

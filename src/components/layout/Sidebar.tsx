@@ -125,6 +125,25 @@ export default function Sidebar() {
     if (isSmall) setMobileOpen(false);
   };
 
+  const width = expanded ? EXPANDED_WIDTH : COLLAPSED_WIDTH;
+  // Sync layoutWidth when not transitioning
+  useEffect(() => {
+    if (!transitioning.current) setLayoutWidth(width);
+  }, [width]);
+
+
+  const handleToggle = () => {
+    const willExpand = !expanded;
+    transitioning.current = true;
+    setExpanded(willExpand);
+    setTimeout(() => {
+      setLayoutWidth(willExpand ? EXPANDED_WIDTH : COLLAPSED_WIDTH);
+      transitioning.current = false;
+    }, 220);
+  };
+
+
+
   if (isSmall) {
     return (
       <>
@@ -133,7 +152,7 @@ export default function Sidebar() {
           <IconButton
             onClick={() => setMobileOpen(true)}
             aria-label="Abrir menú"
-            sx={{ position: 'fixed', top: 8, left: 8, zIndex: (t) => t.zIndex.drawer + 1 }}
+            sx={{ position: 'fixed', top: 8, left: 8, zIndex: (t) => t.zIndex.drawer + 1, bgcolor: 'background.paper', boxShadow: 1, '&:hover': { bgcolor: 'action.hover' } }}
           >
             <MenuIcon />
           </IconButton>
@@ -163,23 +182,6 @@ export default function Sidebar() {
       </>
     );
   }
-
-  const width = expanded ? EXPANDED_WIDTH : COLLAPSED_WIDTH;
-
-  const handleToggle = () => {
-    const willExpand = !expanded;
-    transitioning.current = true;
-    setExpanded(willExpand);
-    setTimeout(() => {
-      setLayoutWidth(willExpand ? EXPANDED_WIDTH : COLLAPSED_WIDTH);
-      transitioning.current = false;
-    }, 220);
-  };
-
-  // Sync layoutWidth when not transitioning
-  useEffect(() => {
-    if (!transitioning.current) setLayoutWidth(width);
-  }, [width]);
 
   return (
     <Drawer

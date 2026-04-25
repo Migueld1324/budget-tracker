@@ -8,7 +8,7 @@ export default function MainLayout() {
       <Sidebar />
       <Box
         component="main"
-        sx={{ flex: 1, p: { xs: 1, sm: 2, md: 3 }, pt: { xs: 7, md: 3 }, overflow: 'auto', minWidth: 0, maxWidth: '100%' }}
+        sx={{ flex: 1, p: { xs: 2, md: 3 }, pt: { xs: '8px', md: 3 }, overflow: 'auto', minWidth: 0, maxWidth: '100%' }}
       >
         <Outlet />
       </Box>

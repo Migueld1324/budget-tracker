@@ -5,7 +5,7 @@ import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import Typography from '@mui/material/Typography';
-import CircularProgress from '@mui/material/CircularProgress';
+import LinearProgress from '@mui/material/LinearProgress';
 import Add from '@mui/icons-material/Add';
 
 import { useAuthStore } from '../store/authStore';
@@ -29,6 +29,7 @@ export default function TransactionsPage() {
   const user = useAuthStore((s) => s.user);
   const selectedPeriod = useUIStore((s) => s.selectedPeriod);
   const transactions = useTransactionStore((s) => s.transactions);
+  const allTransactions = useTransactionStore((s) => s.allTransactions);
   const txLoading = useTransactionStore((s) => s.loading);
   const fetchByPeriod = useTransactionStore((s) => s.fetchByPeriod);
   const fetchAll = useTransactionStore((s) => s.fetchAll);
@@ -45,15 +46,16 @@ export default function TransactionsPage() {
 
   useEffect(() => {
     if (!userId) return;
-    fetchByPeriod(userId, selectedPeriod);
+    // Only fetch if store is empty for this period
+    if (transactions.length === 0) fetchByPeriod(userId, selectedPeriod);
   }, [userId, selectedPeriod, fetchByPeriod]);
 
   useEffect(() => {
     if (!userId) return;
-    fetchAccounts(userId);
-    fetchCategories(userId);
-    fetchAll(userId);
-  }, [userId, fetchAccounts, fetchCategories, fetchAll]);
+    if (accounts.length === 0) fetchAccounts(userId);
+    if (!categories.Ingreso.length && !categories.Gasto.length) fetchCategories(userId);
+    if (allTransactions.length === 0) fetchAll(userId);
+  }, [userId]);
 
   const openAddDialog = useCallback(() => setDialog({ open: true, editId: null }), []);
   const openEditDialog = useCallback((id: string, data: Partial<TransactionInput>) => {
@@ -76,12 +78,11 @@ export default function TransactionsPage() {
     await deleteTransaction(userId, id, selectedPeriod);
   }, [userId, selectedPeriod, deleteTransaction]);
 
-  if (txLoading && transactions.length === 0) {
-    return <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>;
-  }
+  const isLoading = txLoading;
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      {isLoading && <LinearProgress sx={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1200, height: 3 }} />}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
         <Typography variant="h5" sx={{ fontWeight: 600 }}>Transacciones — {periodToDisplay(selectedPeriod)}</Typography>
         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
