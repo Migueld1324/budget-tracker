@@ -49,7 +49,7 @@ function NavItem({ item, expanded, onNavigate }: { item: typeof NAV_ITEMS[0]; ex
       <ListItemIcon sx={{ minWidth: 0, mr: expanded ? 2 : 0, justifyContent: 'center', color: active ? 'primary.main' : 'text.secondary' }}>
         {item.icon}
       </ListItemIcon>
-      {expanded && <ListItemText primary={item.label} primaryTypographyProps={{ fontSize: 14, fontWeight: active ? 600 : 400 }} />}
+      {expanded && <ListItemText primary={item.label} slotProps={{ primary: { sx: { fontSize: 14, fontWeight: active ? 600 : 400 } } }} />}
     </ListItemButton>
   );
   return expanded ? btn : <Tooltip title={item.label} placement="right">{btn}</Tooltip>;
@@ -71,7 +71,7 @@ function BottomActions({ expanded }: { expanded: boolean }) {
         <ListItemIcon sx={{ minWidth: 0, mr: expanded ? 2 : 0, justifyContent: 'center', color: 'text.secondary' }}>
           {icon}
         </ListItemIcon>
-        {expanded && <ListItemText primary={label} primaryTypographyProps={{ fontSize: 14 }} />}
+        {expanded && <ListItemText primary={label} slotProps={{ primary: { sx: { fontSize: 14 } } }} />}
       </ListItemButton>
     );
     return expanded ? btn : <Tooltip title={label} placement="right">{btn}</Tooltip>;

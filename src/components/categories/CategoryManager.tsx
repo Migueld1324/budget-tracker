@@ -76,7 +76,7 @@ export default function CategoryManager({ categories, onAdd, onDelete, error }: 
             </Typography>
           )}
 
-          <Stack direction="row" spacing={1} alignItems="center">
+          <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
             <TextField
               size="small"
               placeholder="Nueva categoría"

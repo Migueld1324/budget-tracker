@@ -20,12 +20,26 @@ export interface TransactionTableProps {
   onDelete: (id: string) => void;
 }
 
+/** Format ISO date (YYYY-MM-DD) to DD/MM/YYYY */
+function formatDate(iso: string): string {
+  const [y, m, d] = iso.split('-');
+  return `${d}/${m}/${y}`;
+}
+
 /**
- * Groups transactions by their `period` field, preserving insertion order.
+ * Groups transactions by their `period` field, sorted by date descending within each group.
  */
 function groupByPeriod(transactions: Transaction[]): Map<string, Transaction[]> {
+  // Sort all transactions by date descending (latest first), then createdAt descending for same-date
+  const sorted = [...transactions].sort((a, b) => {
+    const dateCmp = b.date.localeCompare(a.date);
+    if (dateCmp !== 0) return dateCmp;
+    const aTime = a.createdAt?.seconds ?? 0;
+    const bTime = b.createdAt?.seconds ?? 0;
+    return bTime - aTime;
+  });
   const groups = new Map<string, Transaction[]>();
-  for (const txn of transactions) {
+  for (const txn of sorted) {
     const group = groups.get(txn.period);
     if (group) {
       group.push(txn);
@@ -104,7 +118,7 @@ function TransactionGroup({ period, transactions, onEdit, onDelete }: Transactio
       </TableRow>
       {transactions.map((txn) => (
         <TableRow key={txn.id} hover>
-          <TableCell>{txn.date}</TableCell>
+          <TableCell>{formatDate(txn.date)}</TableCell>
           <TableCell>{txn.type}</TableCell>
           <TableCell>{txn.category}</TableCell>
           <TableCell>{txn.source ?? '—'}</TableCell>
