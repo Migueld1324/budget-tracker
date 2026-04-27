@@ -16,6 +16,7 @@ export default function CategoriesPage() {
   const fetchCategories = useCategoryStore((s) => s.fetchCategories);
   const addCategory = useCategoryStore((s) => s.addCategory);
   const deleteCategory = useCategoryStore((s) => s.deleteCategory);
+  const updateCategory = useCategoryStore((s) => s.updateCategory);
 
   const userId = user?.uid ?? '';
 
@@ -40,6 +41,14 @@ export default function CategoriesPage() {
     [userId, deleteCategory],
   );
 
+  const handleUpdate = useCallback(
+    (type: TransactionType, oldName: string, newName: string) => {
+      if (!userId) return;
+      updateCategory(userId, type, oldName, newName);
+    },
+    [userId, updateCategory],
+  );
+
   if (loading && categories.Ingreso.length === 0 && categories.Gasto.length === 0 && categories.Transferencia.length === 0) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
@@ -55,6 +64,7 @@ export default function CategoriesPage() {
         categories={categories}
         onAdd={handleAdd}
         onDelete={handleDelete}
+        onUpdate={handleUpdate}
         error={error}
       />
     </Box>

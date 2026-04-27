@@ -84,3 +84,40 @@ export async function hasTransactions(
   const snapshot = await getDocs(q);
   return !snapshot.empty;
 }
+
+export async function updateCategory(
+  userId: string,
+  type: TransactionType,
+  oldName: string,
+  newName: string
+): Promise<void> {
+  // Update the category name in the categories list
+  const ref = configDocRef(userId);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) {
+    return;
+  }
+  
+  const currentCategories = snap.data()[type] || [];
+  const updatedCategories = currentCategories.map((cat: string) => 
+    cat === oldName ? newName : cat
+  );
+  
+  await updateDoc(ref, {
+    [type]: updatedCategories,
+  });
+  
+  // Update all transactions with the old category name
+  const q = query(
+    transactionsRef(userId),
+    where('type', '==', type),
+    where('category', '==', oldName)
+  );
+  const snapshot = await getDocs(q);
+  
+  const updatePromises = snapshot.docs.map((doc) =>
+    updateDoc(doc.ref, { category: newName })
+  );
+  
+  await Promise.all(updatePromises);
+}

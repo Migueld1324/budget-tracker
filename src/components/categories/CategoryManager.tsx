@@ -12,6 +12,10 @@ import Stack from '@mui/material/Stack';
 import Box from '@mui/material/Box';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
 import MoreVert from '@mui/icons-material/MoreVert';
 import type { CategoryLists, TransactionType } from '../../types';
 
@@ -19,6 +23,7 @@ export interface CategoryManagerProps {
   categories: CategoryLists;
   onAdd: (type: TransactionType, name: string) => void;
   onDelete: (type: TransactionType, name: string) => void;
+  onUpdate: (type: TransactionType, oldName: string, newName: string) => void;
   error: string | null;
 }
 
@@ -28,7 +33,7 @@ const SECTIONS: { type: TransactionType; label: string }[] = [
   { type: 'Transferencia', label: 'Transferencia' },
 ];
 
-export default function CategoryManager({ categories, onAdd, onDelete, error }: CategoryManagerProps) {
+export default function CategoryManager({ categories, onAdd, onDelete, onUpdate, error }: CategoryManagerProps) {
   const [newNames, setNewNames] = useState<Record<TransactionType, string>>({
     Ingreso: '',
     Gasto: '',
@@ -36,6 +41,9 @@ export default function CategoryManager({ categories, onAdd, onDelete, error }: 
   });
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [activeCategory, setActiveCategory] = useState<{ type: TransactionType; name: string } | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editedCategory, setEditedCategory] = useState<{ type: TransactionType; oldName: string } | null>(null);
+  const [editedName, setEditedName] = useState('');
 
   const openActionsMenu = (event: React.MouseEvent<HTMLElement>, type: TransactionType, name: string) => {
     setAnchorEl(event.currentTarget);
@@ -47,11 +55,42 @@ export default function CategoryManager({ categories, onAdd, onDelete, error }: 
     setActiveCategory(null);
   };
 
-  const handleDeleteClick = () => {
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (activeCategory) {
       onDelete(activeCategory.type, activeCategory.name);
     }
     closeActionsMenu();
+  };
+
+  const handleEditClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (activeCategory) {
+      setEditedCategory({ type: activeCategory.type, oldName: activeCategory.name });
+      setEditedName(activeCategory.name);
+      setEditDialogOpen(true);
+      closeActionsMenu();
+    }
+  };
+
+  const handleEditSave = () => {
+    const newName = editedName.trim();
+    if (!newName || !editedCategory) {
+      setEditDialogOpen(false);
+      return;
+    }
+    if (newName !== editedCategory.oldName) {
+      onUpdate(editedCategory.type, editedCategory.oldName, newName);
+    }
+    setEditDialogOpen(false);
+    setEditedName('');
+    setEditedCategory(null);
+  };
+
+  const handleEditCancel = () => {
+    setEditDialogOpen(false);
+    setEditedName('');
+    setEditedCategory(null);
   };
 
   const handleAdd = (type: TransactionType) => {
@@ -95,6 +134,7 @@ export default function CategoryManager({ categories, onAdd, onDelete, error }: 
                       open={activeCategory?.type === type && activeCategory?.name === name && Boolean(anchorEl)}
                       onClose={closeActionsMenu}
                     >
+                      <MenuItem onClick={handleEditClick}>Editar</MenuItem>
                       <MenuItem onClick={handleDeleteClick}>Eliminar</MenuItem>
                     </Menu>
                   </>
@@ -127,6 +167,30 @@ export default function CategoryManager({ categories, onAdd, onDelete, error }: 
           </Stack>
         </Box>
       ))}
+
+      <Dialog open={editDialogOpen} onClose={handleEditCancel}>
+        <DialogTitle>Editar Categoría</DialogTitle>
+        <DialogContent sx={{ minWidth: '400px' }}>
+          <TextField
+            autoFocus
+            fullWidth
+            label="Nombre de la categoría"
+            value={editedName}
+            onChange={(e) => setEditedName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleEditSave();
+              if (e.key === 'Escape') handleEditCancel();
+            }}
+            sx={{ mt: 2 }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleEditCancel}>Cancelar</Button>
+          <Button onClick={handleEditSave} variant="contained">
+            Guardar
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

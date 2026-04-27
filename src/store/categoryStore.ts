@@ -4,8 +4,10 @@ import {
   getAll,
   addCategory as addCategoryService,
   deleteCategory as deleteCategoryService,
+  updateCategory as updateCategoryService,
   hasTransactions,
 } from '../services/categoryService';
+import { getAll as getAllTransactions } from '../services/transactionService';
 
 interface CategoryStore {
   categories: CategoryLists;
@@ -14,6 +16,7 @@ interface CategoryStore {
   fetchCategories: (userId: string) => Promise<void>;
   addCategory: (userId: string, type: TransactionType, name: string) => Promise<void>;
   deleteCategory: (userId: string, type: TransactionType, name: string) => Promise<void>;
+  updateCategory: (userId: string, type: TransactionType, oldName: string, newName: string) => Promise<void>;
 }
 
 export const useCategoryStore = create<CategoryStore>((set) => ({
@@ -65,6 +68,28 @@ export const useCategoryStore = create<CategoryStore>((set) => ({
     } catch (err) {
       set({
         error: err instanceof Error ? err.message : 'Error al eliminar categoría',
+        loading: false,
+      });
+    }
+  },
+
+  updateCategory: async (userId, type, oldName, newName) => {
+    set({ loading: true, error: null });
+    try {
+      await updateCategoryService(userId, type, oldName, newName);
+      const [categories, allTransactions] = await Promise.all([
+        getAll(userId),
+        getAllTransactions(userId),
+      ]);
+      
+      // Update the transaction store as well
+      const { useTransactionStore } = await import('./transactionStore');
+      useTransactionStore.setState({ allTransactions });
+      
+      set({ categories, loading: false });
+    } catch (err) {
+      set({
+        error: err instanceof Error ? err.message : 'Error al actualizar categoría',
         loading: false,
       });
     }
