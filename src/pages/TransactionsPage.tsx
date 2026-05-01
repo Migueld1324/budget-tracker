@@ -52,7 +52,7 @@ export default function TransactionsPage() {
   useEffect(() => {
     if (!userId) return;
     // Only fetch if store is empty for this period
-    if (transactions.length === 0) fetchByPeriod(userId, selectedPeriod);
+    fetchByPeriod(userId, selectedPeriod);
   }, [userId, selectedPeriod, fetchByPeriod]);
 
   useEffect(() => {

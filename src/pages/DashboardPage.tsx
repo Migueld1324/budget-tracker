@@ -136,7 +136,7 @@ export default function DashboardPage() {
   const txtC = theme.palette.text.primary;
   const bgC = theme.palette.background.paper;
 
-  useEffect(() => { if (userId && transactions.length === 0) fetchByPeriod(userId, selectedPeriod); }, [userId, selectedPeriod]);
+  useEffect(() => { if (userId) fetchByPeriod(userId, selectedPeriod); }, [userId, selectedPeriod]);
   useEffect(() => { if (userId) { if (allTransactions.length === 0) fetchAll(userId); if (accounts.length === 0) fetchAccounts(userId); } }, [userId]);
 
   const cur = useMemo(() => buildKPIs(transactions, accounts, allTransactions), [transactions, accounts, allTransactions]);

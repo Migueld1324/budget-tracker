@@ -20,7 +20,6 @@ import InputLabel from '@mui/material/InputLabel';
 import Collapse from '@mui/material/Collapse';
 import Button from '@mui/material/Button';
 import MoreVert from '@mui/icons-material/MoreVert';
-import { darken } from '@mui/material/styles';
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { formatMXN } from '../../utils/currency';
@@ -65,31 +64,27 @@ const TYPE_COLORS: Record<string, { bg: string; text: string }> = {
 };
 
 const ACCOUNT_COLORS: Record<string, string> = {
-  // Configure account-specific colors here.
-  // Key must match the account name used in transactions.
-  'BBVA TDC': '#3c78d8',
-  'BB TDC': '#8d6fc3',
-  BBVA: '#a4c2f4',
-  BanBajio: '#c0ade3',
-  Efectivo: '#63d297',
-  Vales: '#ea9999',
-  Ahorro: '#3949ab',
-  BONDDIA: '#cfe2f3',
-  CETES: '#cfe2f3',
-  FIBRAS: '#f1c232',
-  BONOS: '#cfe2f3',
-  ETFs: '#ff6d01',
+  'BBVA TDC': '#1565c0',
+  'BB TDC': '#6a1b9a',
+  BBVA: '#0d47a1',
+  BanBajio: '#4a148c',
+  Efectivo: '#2e7d32',
+  Vales: '#bf360c',
+  Ahorro: '#283593',
+  BONDDIA: '#00695c',
+  CETES: '#004d40',
+  FIBRAS: '#e65100',
+  BONOS: '#01579b',
+  ETFs: '#d84315',
 };
 
 const DEFAULT_ACCOUNT_COLOR = '#455a64';
-const LIGHT_MODE_DARKEN_AMOUNT = 0.35;
 const FILTER_ITEM_MIN_WIDTH = 150;
 const FILTER_FIELDS_COUNT = 6;
 const FILTER_ACTION_SLOTS = 1;
 
-function getAccountColor(accountName: string, isLightMode: boolean): string {
-  const baseColor = ACCOUNT_COLORS[accountName] ?? DEFAULT_ACCOUNT_COLOR;
-  return isLightMode ? darken(baseColor, LIGHT_MODE_DARKEN_AMOUNT) : baseColor;
+function getAccountColor(accountName: string): string {
+  return ACCOUNT_COLORS[accountName] ?? DEFAULT_ACCOUNT_COLOR;
 }
 
 interface Filters {
@@ -106,7 +101,7 @@ const emptyFilters: Filters = { dateFrom: '', dateTo: '', type: '', category: ''
 export default function TransactionTable({ transactions, onEdit, onDelete, filtersOpen, onFiltersOpenChange }: TransactionTableProps) {
   const theme = useTheme();
   const isCompactView = useMediaQuery(theme.breakpoints.down('md'));
-  const isLightMode = theme.palette.mode === 'light';
+  // const isLightMode = theme.palette.mode === 'light';
   const filterGridRef = useRef<HTMLDivElement | null>(null);
   const [filterGridWidth, setFilterGridWidth] = useState(0);
   const [page, setPage] = useState(0);
@@ -137,7 +132,10 @@ export default function TransactionTable({ transactions, onEdit, onDelete, filte
     return result;
   }, [transactions, filters]);
 
-  const paged = filtered.slice(page * rowsPerPage, (page + 1) * rowsPerPage);
+  // Reset page if current page is beyond filtered results
+  const safePage = page * rowsPerPage >= filtered.length && filtered.length > 0 ? 0 : page;
+  if (safePage !== page) setPage(safePage);
+  const paged = filtered.slice(safePage * rowsPerPage, (safePage + 1) * rowsPerPage);
   const updateFilter = (key: keyof Filters, value: string) => { setFilters(f => ({ ...f, [key]: value })); setPage(0); };
   const isActionsMenuOpen = Boolean(actionsAnchorEl);
   const filterGridGap = Number.parseFloat(theme.spacing(1.5));
@@ -254,7 +252,7 @@ export default function TransactionTable({ transactions, onEdit, onDelete, filte
                 }}
               >
                 <Button size="small" variant="outlined" sx={{ flex: 1, minWidth: 0 }} onClick={() => { setFilters(emptyFilters); setPage(0); }}>Limpiar</Button>
-                <Button size="small" variant="contained" sx={{ flex: 1, minWidth: 0 }} onClick={() => onFiltersOpenChange(false)}>Aplicar</Button>
+                <Button size="small" variant="contained" sx={{ flex: 1, minWidth: 0 }} onClick={() => { setPage(0); onFiltersOpenChange(false); }}>Aplicar</Button>
               </Box>
             )}
           </Box>
@@ -263,7 +261,7 @@ export default function TransactionTable({ transactions, onEdit, onDelete, filte
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1.5 }}>
               <Box sx={{ display: 'flex', gap: 0.75, width: filterFieldWidth }}>
                 <Button size="small" variant="outlined" sx={{ flex: 1, minWidth: 0 }} onClick={() => { setFilters(emptyFilters); setPage(0); }}>Limpiar</Button>
-                <Button size="small" variant="contained" sx={{ flex: 1, minWidth: 0 }} onClick={() => onFiltersOpenChange(false)}>Aplicar</Button>
+                <Button size="small" variant="contained" sx={{ flex: 1, minWidth: 0 }} onClick={() => { setPage(0); onFiltersOpenChange(false); }}>Aplicar</Button>
               </Box>
             </Box>
           )}
@@ -324,12 +322,12 @@ export default function TransactionTable({ transactions, onEdit, onDelete, filte
                     <Typography variant="body2">{txn.category}</Typography>
 
                     <Typography variant="caption" sx={{ color: 'text.secondary' }}>Origen</Typography>
-                    <Typography variant="body2" sx={{ color: txn.source ? getAccountColor(txn.source, isLightMode) : 'text.secondary', fontWeight: 500 }}>
+                    <Typography variant="body2" sx={{ color: txn.source ? getAccountColor(txn.source) : 'text.secondary', fontWeight: 500 }}>
                       {txn.source ?? '—'}
                     </Typography>
 
                     <Typography variant="caption" sx={{ color: 'text.secondary' }}>Destino</Typography>
-                    <Typography variant="body2" sx={{ color: txn.destination ? getAccountColor(txn.destination, isLightMode) : 'text.secondary', fontWeight: 500 }}>
+                    <Typography variant="body2" sx={{ color: txn.destination ? getAccountColor(txn.destination) : 'text.secondary', fontWeight: 500 }}>
                       {txn.destination ?? '—'}
                     </Typography>
 
@@ -372,8 +370,8 @@ export default function TransactionTable({ transactions, onEdit, onDelete, filte
                     <TableCell>{formatDate(txn.date)}</TableCell>
                     <TableCell><Typography variant="body2" sx={{ color: tc.text, fontWeight: 600, fontSize: 13 }}>{txn.type}</Typography></TableCell>
                     <TableCell>{txn.category}</TableCell>
-                    <TableCell>{txn.source ? <Typography variant="body2" sx={{ color: getAccountColor(txn.source, isLightMode), fontWeight: 500 }}>{txn.source}</Typography> : '—'}</TableCell>
-                    <TableCell>{txn.destination ? <Typography variant="body2" sx={{ color: getAccountColor(txn.destination, isLightMode), fontWeight: 500 }}>{txn.destination}</Typography> : '—'}</TableCell>
+                    <TableCell>{txn.source ? <Typography variant="body2" sx={{ color: getAccountColor(txn.source), fontWeight: 500 }}>{txn.source}</Typography> : '—'}</TableCell>
+                    <TableCell>{txn.destination ? <Typography variant="body2" sx={{ color: getAccountColor(txn.destination), fontWeight: 500 }}>{txn.destination}</Typography> : '—'}</TableCell>
                     <TableCell align="right">{formatMXN(txn.amount)}</TableCell>
                     <TableCell>{txn.description}</TableCell>
                     <TableCell align="center" sx={{ whiteSpace: 'nowrap' }}>
